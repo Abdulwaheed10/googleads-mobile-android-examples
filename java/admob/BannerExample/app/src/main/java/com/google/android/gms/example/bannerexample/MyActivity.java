@@ -28,15 +28,12 @@ import android.view.WindowMetrics;
 import android.widget.FrameLayout;
 import android.widget.PopupMenu;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.RequestConfiguration;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -99,13 +96,6 @@ public class MyActivity extends AppCompatActivity {
                 loadBanner();
               }
             });
-
-    // Set your test devices. Check your logcat output for the hashed device ID to
-    // get test ads on a physical device. e.g.
-    // "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345"))
-    // to get test ads on this device."
-    MobileAds.setRequestConfiguration(
-        new RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345")).build());
   }
 
   @Override
@@ -187,19 +177,29 @@ public class MyActivity extends AppCompatActivity {
       return;
     }
 
-    // Initialize the Mobile Ads SDK.
-    MobileAds.initialize(
-        this,
-        new OnInitializationCompleteListener() {
-          @Override
-          public void onInitializationComplete(
-              @NonNull InitializationStatus initializationStatus) {}
-        });
+    new Thread(
+            () -> {
+              // Initialize the Google Mobile Ads SDK.
+              MobileAds.initialize(this, initializationStatus -> {});
 
-    // Load an ad.
-    if (initialLayoutComplete.get()) {
-      loadBanner();
-    }
+              // Set your test devices. Check your logcat output for the hashed device ID to
+              // get test ads on a physical device. e.g.
+              // "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345"))
+              // to get test ads on this device."
+              MobileAds.setRequestConfiguration(
+                  new RequestConfiguration.Builder()
+                      .setTestDeviceIds(Arrays.asList("ABCDEF012345"))
+                      .build());
+
+              // Load an ad on the main thread.
+              runOnUiThread(
+                  () -> {
+                    if (initialLayoutComplete.get()) {
+                      loadBanner();
+                    }
+                  });
+            })
+        .start();
   }
 
   // Get the ad size with screen width.
