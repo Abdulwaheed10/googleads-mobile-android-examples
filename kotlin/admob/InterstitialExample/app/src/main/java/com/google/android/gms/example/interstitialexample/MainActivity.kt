@@ -14,9 +14,11 @@ import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.google.android.gms.example.interstitialexample.databinding.ActivityMainBinding
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 const val GAME_LENGTH_MILLISECONDS = 3000L
-const val AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
 
 class MainActivity : AppCompatActivity() {
 
@@ -62,14 +64,6 @@ class MainActivity : AppCompatActivity() {
     if (googleMobileAdsConsentManager.canRequestAds) {
       initializeMobileAdsSdk()
     }
-
-    // Set your test devices. Check your logcat output for the hashed device ID to
-    // get test ads on a physical device. e.g.
-    // "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345"))
-    // to get test ads on this device."
-    MobileAds.setRequestConfiguration(
-      RequestConfiguration.Builder().setTestDeviceIds(listOf("ABCDEF012345")).build()
-    )
 
     // Create the "retry" button, which triggers an interstitial between game plays.
     binding.retryButton.visibility = View.INVISIBLE
@@ -134,7 +128,7 @@ class MainActivity : AppCompatActivity() {
           Toast.makeText(
               this@MainActivity,
               "onAdFailedToLoad() with error $error",
-              Toast.LENGTH_SHORT
+              Toast.LENGTH_SHORT,
             )
             .show()
         }
@@ -145,7 +139,7 @@ class MainActivity : AppCompatActivity() {
           adIsLoading = false
           Toast.makeText(this@MainActivity, "onAdLoaded()", Toast.LENGTH_SHORT).show()
         }
-      }
+      },
     )
   }
 
@@ -233,10 +227,22 @@ class MainActivity : AppCompatActivity() {
       return
     }
 
-    // Initialize the Mobile Ads SDK.
-    MobileAds.initialize(this) { initializationStatus ->
-      // Load an ad.
-      loadAd()
+    // Set your test devices. Check your logcat output for the hashed device ID to
+    // get test ads on a physical device. e.g.
+    // "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345"))
+    // to get test ads on this device."
+    MobileAds.setRequestConfiguration(
+      RequestConfiguration.Builder().setTestDeviceIds(listOf("ABCDEF012345")).build()
+    )
+
+    val backgroundScope = CoroutineScope(Dispatchers.IO)
+    backgroundScope.launch {
+      // Initialize the Google Mobile Ads SDK on a background thread.
+      MobileAds.initialize(this@MainActivity) {}
+      runOnUiThread {
+        // Load an ad on the main thread.
+        loadAd()
+      }
     }
   }
 
@@ -252,6 +258,8 @@ class MainActivity : AppCompatActivity() {
   }
 
   private companion object {
+    // This is an ad unit ID for a test ad. Replace with your own interstitial ad unit ID.
+    private const val AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
     const val TAG = "MainActivity"
   }
 }

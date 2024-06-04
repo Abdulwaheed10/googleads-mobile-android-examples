@@ -28,14 +28,17 @@ import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.RequestConfiguration
 import com.google.android.gms.ads.admanager.AdManagerAdRequest
 import com.google.android.gms.ads.admanager.AdManagerInterstitialAd
 import com.google.android.gms.ads.admanager.AdManagerInterstitialAdLoadCallback
 import com.google.android.gms.example.interstitialexample.databinding.ActivityMyBinding
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 const val GAME_LENGTH_MILLISECONDS: Long = 3000
-const val AD_UNIT_ID = "/6499/example/interstitial"
 
 /** Main Activity. Inflates main activity xml. */
 class MyActivity : AppCompatActivity() {
@@ -144,7 +147,7 @@ class MyActivity : AppCompatActivity() {
           Toast.makeText(
               this@MyActivity,
               "onAdFailedToLoad() with error $error",
-              Toast.LENGTH_SHORT
+              Toast.LENGTH_SHORT,
             )
             .show()
         }
@@ -155,7 +158,7 @@ class MyActivity : AppCompatActivity() {
           adIsLoading = false
           Toast.makeText(this@MyActivity, "onAdLoaded()", Toast.LENGTH_SHORT).show()
         }
-      }
+      },
     )
   }
 
@@ -252,14 +255,29 @@ class MyActivity : AppCompatActivity() {
       return
     }
 
-    // Initialize the Mobile Ads SDK.
-    MobileAds.initialize(this) { initializationStatus ->
-      // Load an ad.
-      loadAd()
+    // Set your test devices. Check your logcat output for the hashed device ID to
+    // get test ads on a physical device. e.g.
+    // "Use RequestConfiguration.Builder().setTestDeviceIds(Arrays.asList("ABCDEF012345"))
+    // to get test ads on this device."
+    MobileAds.setRequestConfiguration(
+      RequestConfiguration.Builder().setTestDeviceIds(listOf("ABCDEF012345")).build()
+    )
+
+    val backgroundScope = CoroutineScope(Dispatchers.IO)
+    backgroundScope.launch {
+      // Initialize the Google Mobile Ads SDK.
+      MobileAds.initialize(this@MyActivity) {}
+
+      runOnUiThread {
+        // Load an ad on the main thread.
+        loadAd()
+      }
     }
   }
 
   private companion object {
+    // This is an ad unit ID for a test ad. Replace with your own interstitial ad unit ID.
+    private const val AD_UNIT_ID = "/6499/example/interstitial"
     const val TAG = "MyActivity"
   }
 }
